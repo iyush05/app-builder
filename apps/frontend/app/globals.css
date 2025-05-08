@@ -136,6 +136,25 @@
       --sidebar-ring: 217.2 91.2% 59.8%;
     }
   }
+/* For dark scrollbars */
+.dark-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #4B5563 #1F2937; /* thumb color, track color */
+}
+
+/* For WebKit browsers */
+.dark-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dark-scrollbar::-webkit-scrollbar-track {
+  background: #1F2937; /* dark track */
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #4B5563; /* dark thumb */
+  border-radius: 4px;
+}
   
   * {
     @apply border-border outline-ring/50;
