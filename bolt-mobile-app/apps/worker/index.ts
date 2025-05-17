@@ -6,7 +6,7 @@ import { prismaClient } from "db/client";
 import { ArtifactProcessor } from "./parser";
 import { onFileUpdate, onShellCommand } from "./os";
 import { systemPrompt } from "./systemPrompt";
-// import Anthropic from "@anthropic-ai/sdk";
+import Anthropic from "@anthropic-ai/sdk";
 import { authMiddleware } from "./middleware";
 
 const app = express();
@@ -17,7 +17,7 @@ app.post("/prompt",  async (req, res) => {
     const { prompt, projectId } = req.body;
     console.log("Prompt:", prompt);
     console.log("ProjectId:", projectId);
-    // const client = new Anthropic();
+    const client = new Anthropic();
     // const client = new OpenAI();
     const genAI = new GoogleGenerativeAI(`${process.env.GOOGLE_API_KEY}`);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
@@ -64,40 +64,40 @@ app.post("/prompt",  async (req, res) => {
     let artifactProcessor = new ArtifactProcessor("", ( filePath, fileContent ) => onFileUpdate(filePath, fileContent, projectId), (shellCommand) => onShellCommand(shellCommand, projectId));
     let artifact = "";
 
-    const result = await model.generateContentStream({ contents });
-    for await (const chunk of result.stream) {
-        const text = chunk.text();
-        if(text) {
-            artifactProcessor.append(text);
-            artifactProcessor.parse();
-            artifact += text;
-            console.log(text);
-        }
-    }
+    // const result = await model.generateContentStream({ contents });
+    // for await (const chunk of result.stream) {
+    //     const text = chunk.text();
+    //     if(text) {
+    //         artifactProcessor.append(text);
+    //         artifactProcessor.parse();
+    //         artifact += text;
+    //         console.log(text);
+    //     }
+    // }
 
-    // let response = client.messages.stream({
-    //     messages: allPrompts.map((p: any) => ({
-    //       role: p.type === "USER" ? "user" : "assistant",
-    //       content: p.content,
-    //     })),
-    //     system: systemPrompt(project.type),
-    //     model: "claude-3-7-sonnet-20250219",
-    //     max_tokens: 8000,
-    //   }).on('text', (text) => {
-    //     artifactProcessor.append(text);
-    //     artifactProcessor.parse();
-    //     artifact += text;
-    //   })
-    //   .on('finalMessage', async (message) => {
-    //     console.log("done!");
-    //     await prismaClient.prompt.create({
-    //       data: {
-    //         content: artifact,
-    //         projectId,
-    //         type: "SYSTEM",
-    //       },
-    //     });
-        // console.log(response);
+    let response = client.messages.stream({
+        messages: allPrompts.map((p: any) => ({
+          role: p.type === "USER" ? "user" : "assistant",
+          content: p.content,
+        })),
+        system: systemPrompt(project.type),
+        model: "claude-3-7-sonnet-20250219",
+        max_tokens: 8000,
+      }).on('text', (text) => {
+        artifactProcessor.append(text);
+        artifactProcessor.parse();
+        artifact += text;
+      })
+      .on('finalMessage', async (message) => {
+        console.log("done!");
+        await prismaClient.prompt.create({
+          data: {
+            content: artifact,
+            projectId,
+            type: "SYSTEM",
+          },
+        });
+        console.log(response);
 
     await prismaClient.prompt.create({
         data: {
@@ -118,7 +118,7 @@ app.post("/prompt",  async (req, res) => {
     res.status(200).json({message: "artifact generated"})
 })
 // [{ role: "user", parts: [ { text: "hello" }] }],
-// })
+})
 
 app.listen(9091, () => {
     console.log("Server running on port: 9091")
